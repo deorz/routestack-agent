@@ -74,8 +74,12 @@ func TestIsEnrolled(t *testing.T) {
 	// Create fake cert and key files.
 	certPath := filepath.Join(dir, "cert.pem")
 	keyPath := filepath.Join(dir, "key.pem")
-	os.WriteFile(certPath, []byte("fake-cert"), 0600)
-	os.WriteFile(keyPath, []byte("fake-key"), 0600)
+	if err := os.WriteFile(certPath, []byte("fake-cert"), 0600); err != nil {
+		t.Fatalf("WriteFile cert: %v", err)
+	}
+	if err := os.WriteFile(keyPath, []byte("fake-key"), 0600); err != nil {
+		t.Fatalf("WriteFile key: %v", err)
+	}
 
 	st := &AgentState{
 		NodeID:   "node-xyz",

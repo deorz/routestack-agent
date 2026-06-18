@@ -4,7 +4,7 @@ LDFLAGS    := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT)
 VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT     ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 
-.PHONY: build test lint vet fmt check clean install docker-build
+.PHONY: build test lint vet fmt check clean install docker-build mockgen tools
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o $(BINARY) $(CMD)
@@ -40,3 +40,9 @@ install: build
 
 docker-build:
 	docker build -t routestack-agent:$(VERSION) .
+
+tools:
+	go install go.uber.org/mock/mockgen@latest
+
+mockgen:
+	go generate ./...

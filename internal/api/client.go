@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net"
 	"net/http"
 	"os"
@@ -23,7 +22,6 @@ import (
 type Client struct {
 	httpClient *http.Client
 	baseURL    string
-	nodeID     string
 }
 
 // RetryConfig controls the retry behavior.
@@ -261,7 +259,7 @@ func isRetryableError(err error) bool {
 	// Retry on DNS, connection refused, reset, timeout.
 	var netErr net.Error
 	if errors.As(err, &netErr) {
-		return netErr.Timeout() || netErr.Temporary()
+		return netErr.Timeout()
 	}
 	return true
 }
@@ -274,9 +272,4 @@ type HTTPError struct {
 
 func (e *HTTPError) Error() string {
 	return fmt.Sprintf("http %d: %s", e.StatusCode, e.Body)
-}
-
-// backoff calculcates exponential backoff delay (unused inline — see doWithRetry).
-func backoff(attempt int, base time.Duration) time.Duration {
-	return base * time.Duration(math.Pow(2, float64(attempt)))
 }

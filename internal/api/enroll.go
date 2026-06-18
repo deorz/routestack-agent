@@ -149,4 +149,3 @@ func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
 
 	return os.Rename(tmpPath, path)
 }
-
