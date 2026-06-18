@@ -1,0 +1,7 @@
+routestack-agent
+*.exe
+*.test
+*.prof
+vendor/
+.idea/
+*.iml
