@@ -1,0 +1,20 @@
+services:
+  agent:
+    build: .
+    privileged: true
+    pid: host
+    network_mode: host
+    volumes:
+      - ./configs:/etc/routestack/agent:ro
+      - agent-data:/var/lib/routestack
+      - agent-logs:/var/log/routestack
+      - /etc/systemd/system:/etc/systemd/system
+      - /run/systemd:/run/systemd
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    environment:
+      - ROUTESTACK_CONFIG=/etc/routestack/agent/config.yaml
+    restart: unless-stopped
+
+volumes:
+  agent-data:
+  agent-logs:

@@ -1,0 +1,22 @@
+agent:
+  version: "0.1.0"
+  node_id: ""
+
+controller:
+  url: "https://panel.example.com"
+  ca_cert_path: "/etc/routestack/agent/ca.pem"
+  heartbeat_interval_sec: 30
+  operation_poll_timeout_sec: 30
+  connect_timeout_sec: 10
+  request_timeout_sec: 60
+
+paths:
+  config_dir: "/etc/routestack/services"
+  backup_dir: "/var/lib/routestack/backups"
+  state_file: "/var/lib/routestack/state.json"
+  log_file: "/var/log/routestack/agent.log"
+  nftables_config: "/etc/routestack/nftables/routestack.nft"
+
+system:
+  ssh_port: 22
+  public_interface: ""
