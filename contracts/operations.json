@@ -21,13 +21,14 @@
   "$defs": {
     "install_component": {
       "title": "INSTALL_COMPONENT",
+      "description": "Pull and verify a Docker image for a managed component.",
       "properties": {
-        "component_name": { "type": "string" },
-        "version": { "type": "string" },
-        "download_url": { "type": "string", "format": "uri" },
-        "expected_sha256": { "type": "string" }
+        "component_name": { "type": "string", "description": "Logical component name (e.g. amnezia-awg2, xray, telemt)." },
+        "version": { "type": "string", "description": "Component version or image tag." },
+        "image": { "type": "string", "description": "Docker image reference, including registry and tag (e.g. ghcr.io/telemt/telemt:v1.2.3)." },
+        "expected_digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$", "description": "Expected SHA-256 image digest." }
       },
-      "required": ["component_name", "version", "download_url", "expected_sha256"]
+      "required": ["component_name", "version", "image", "expected_digest"]
     },
     "apply_service_revision": {
       "title": "APPLY_SERVICE_REVISION",

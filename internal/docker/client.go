@@ -137,6 +137,37 @@ func (c *Client) Pull(ctx context.Context, image string) error {
 	return nil
 }
 
+// ImageInfo holds metadata returned by image inspection.
+type ImageInfo struct {
+	ID           string   `json:"Id"`
+	RepoTags     []string `json:"RepoTags"`
+	RepoDigests  []string `json:"RepoDigests"`
+	Size         int64    `json:"Size"`
+	Os           string   `json:"Os"`
+	Architecture string   `json:"Architecture"`
+}
+
+// InspectImage returns metadata for an image by reference.
+func (c *Client) InspectImage(ctx context.Context, image string) (*ImageInfo, error) {
+	q := fmt.Sprintf("/%s/images/%s/json", c.apiVersion, image)
+	resp, err := c.do(ctx, http.MethodGet, q, nil)
+	if err != nil {
+		return nil, fmt.Errorf("docker inspect image %s: %w", image, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("docker inspect image %s: http %d: %s", image, resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	var info ImageInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return nil, fmt.Errorf("docker inspect image %s: decode: %w", image, err)
+	}
+	return &info, nil
+}
+
 // Create creates a container from the given spec. Returns the container ID.
 func (c *Client) Create(ctx context.Context, spec ContainerSpec) (string, error) {
 	body := c.buildCreateRequest(spec)
