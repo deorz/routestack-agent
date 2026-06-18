@@ -23,7 +23,6 @@ linters-settings:
       - name: context-as-argument
       - name: error-return
       - name: error-strings
-      - name: exported
       - name: if-return
       - name: increment-decrement
       - name: indent-error-flow
@@ -35,6 +34,9 @@ linters-settings:
       - name: unreachable-code
 
   gocritic:
+    disabled-checks:
+      - hugeParam
+      - octalLiteral
     enabled-tags:
       - diagnostic
       - style
