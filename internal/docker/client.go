@@ -251,8 +251,6 @@ func (c *Client) Inspect(ctx context.Context, containerID string) (*ContainerSta
 //	https://github.com/PRVTPRO/Amnezia-Web-Panel
 var KnownContainerNames = []string{
 	"amnezia-awg2",
-	"amnezia-awg",
-	"amnezia-awg-legacy",
 	"amnezia-xray",
 	"telemt",
 }
