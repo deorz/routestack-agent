@@ -273,4 +273,3 @@ type HTTPError struct {
 func (e *HTTPError) Error() string {
 	return fmt.Sprintf("http %d: %s", e.StatusCode, e.Body)
 }
-
