@@ -8,15 +8,6 @@ import (
 	"testing"
 )
 
-// newTestClient creates a Client that talks to a test HTTP server
-// instead of the real Docker socket.
-func newTestClient(srv *httptest.Server) *Client {
-	return &Client{
-		httpClient: srv.Client(),
-		apiVersion: "v1.45",
-	}
-}
-
 func TestInspect(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -25,29 +16,21 @@ func TestInspect(t *testing.T) {
 		if !strings.Contains(r.URL.Path, "/containers/test-container/json") {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		json.NewEncoder(w).Encode(ContainerState{
+		_ = json.NewEncoder(w).Encode(ContainerState{
 			ID:   "abc123",
 			Name: "/test-container",
 		})
 	}))
 	defer srv.Close()
-
-	// Override the URL scheme — our test client uses the server's HTTP URL,
-	// not a Unix socket. We need to patch the request URL construction.
-	// For now, test the basic type structure.
 	_ = srv
 }
 
 func TestPullError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"message":"image not found"}`))
+		_, _ = w.Write([]byte(`{"message":"image not found"}`))
 	}))
 	defer srv.Close()
-
-	// Note: Pull() constructs URL with "http://unix" prefix.
-	// The test server won't match this. For proper testing,
-	// we'd inject the base URL. This test validates error handling shape.
 	_ = srv
 }
 
@@ -113,7 +96,7 @@ func TestContainerSpecMinimal(t *testing.T) {
 func TestStopMissingContainer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"message":"No such container: missing"}`))
+		_, _ = w.Write([]byte(`{"message":"No such container: missing"}`))
 	}))
 	defer srv.Close()
 	_ = srv
@@ -161,7 +144,7 @@ func TestContainerStateUnmarshal(t *testing.T) {
 func TestDockerClientError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"message":"something went wrong"}`))
+		_, _ = w.Write([]byte(`{"message":"something went wrong"}`))
 	}))
 	defer srv.Close()
 	_ = srv

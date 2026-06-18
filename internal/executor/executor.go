@@ -159,8 +159,8 @@ func (e *Executor) evictLoop() {
 
 // RedirectError is sentinel for "not yet implemented" operation types.
 type RedirectError struct {
-	OpType    string
-	Target    string // which phase will implement it
+	OpType string
+	Target string // which phase will implement it
 }
 
 func (e *RedirectError) Error() string {

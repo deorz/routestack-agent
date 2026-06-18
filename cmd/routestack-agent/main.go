@@ -15,6 +15,7 @@ import (
 	"routestack-agent/internal/filesystem"
 	"routestack-agent/internal/state"
 )
+
 // Populated at build time via -ldflags.
 var (
 	version = "dev"
@@ -53,7 +54,7 @@ func printUsage() {
 func cmdRun(args []string) {
 	fs := flag.NewFlagSet("run", flag.ExitOnError)
 	configPath := fs.String("config", defaultConfigPath(), "path to config.yaml")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -135,7 +136,7 @@ func cmdEnroll(args []string) {
 	token := fs.String("token", "", "enrollment token from controller")
 	controllerURL := fs.String("controller", "", "controller URL (e.g. https://panel.example.com)")
 	configPath := fs.String("config", defaultConfigPath(), "path to config.yaml")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	if *token == "" || *controllerURL == "" {
 		fmt.Fprintln(os.Stderr, "error: --token and --controller are required")
@@ -173,6 +174,7 @@ func cmdEnroll(args []string) {
 
 	resp, err := api.Enroll(ctx, *controllerURL, *token, caCertPath)
 	if err != nil {
+		cancel()
 		logger.Error("enrollment failed", slog.String("error", err.Error()))
 		os.Exit(1)
 	}

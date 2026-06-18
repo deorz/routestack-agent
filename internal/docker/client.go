@@ -74,12 +74,12 @@ type VolumeMount struct {
 
 // ContainerInfo holds a summary of a container (from GET /containers/json).
 type ContainerInfo struct {
-	ID      string `json:"Id"`
-	Names   []string
-	Image   string
-	State   string
-	Status  string
-	Ports   []ContainerPort `json:"Ports"`
+	ID     string `json:"Id"`
+	Names  []string
+	Image  string
+	State  string
+	Status string
+	Ports  []ContainerPort `json:"Ports"`
 }
 
 // ContainerPort describes an exposed port on a container.
@@ -127,7 +127,9 @@ func (c *Client) Pull(ctx context.Context, image string) error {
 	// We just need to know it completed without error.
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
-		var msg struct{ Error string `json:"error"` }
+		var msg struct {
+			Error string `json:"error"`
+		}
 		if err := json.Unmarshal(scanner.Bytes(), &msg); err == nil && msg.Error != "" {
 			return fmt.Errorf("docker pull %s: %s", image, msg.Error)
 		}
@@ -244,7 +246,7 @@ func (c *Client) Inspect(ctx context.Context, containerID string) (*ContainerSta
 func (c *Client) List(ctx context.Context, labels map[string]string) ([]ContainerInfo, error) {
 	q := fmt.Sprintf("/%s/containers/json?all=true", c.apiVersion)
 	for k, v := range labels {
-		q += fmt.Sprintf("&filters={\"label\":{\"%s\":true}}", k+"="+v)
+		q += fmt.Sprintf("&filters={\"label\":{%q:true}}", k+"="+v)
 	}
 	// If no labels, just list all.
 	if len(labels) == 0 {
@@ -382,4 +384,3 @@ func (c *Client) buildCreateRequest(spec ContainerSpec) map[string]any {
 
 	return req
 }
-

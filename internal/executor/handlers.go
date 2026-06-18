@@ -23,8 +23,8 @@ func NewDockerStartHandler(client *docker.Client) Handler {
 			return nil, fmt.Errorf("container_name is required")
 		}
 
-		if err := client.Start(ctx, p.ContainerName); err != nil {
-			return &Result{Status: "failed", Message: err.Error()}, nil
+		if startErr := client.Start(ctx, p.ContainerName); startErr != nil {
+			return &Result{Status: "failed", Message: startErr.Error()}, nil
 		}
 		return &Result{Status: "success", Message: fmt.Sprintf("started %s", p.ContainerName)}, nil
 	}
@@ -44,8 +44,8 @@ func NewDockerStopHandler(client *docker.Client) Handler {
 			return nil, fmt.Errorf("container_name is required")
 		}
 
-		if err := client.Stop(ctx, p.ContainerName, p.TimeoutSec); err != nil {
-			return &Result{Status: "failed", Message: err.Error()}, nil
+		if stopErr := client.Stop(ctx, p.ContainerName, p.TimeoutSec); stopErr != nil {
+			return &Result{Status: "failed", Message: stopErr.Error()}, nil
 		}
 		return &Result{Status: "success", Message: fmt.Sprintf("stopped %s", p.ContainerName)}, nil
 	}
@@ -66,11 +66,11 @@ func NewDockerRestartHandler(client *docker.Client) Handler {
 			return nil, fmt.Errorf("container_name is required")
 		}
 
-		if err := client.Stop(ctx, p.ContainerName, p.TimeoutSec); err != nil {
-			return &Result{Status: "failed", Message: fmt.Sprintf("stop: %v", err)}, nil
+		if stopErr := client.Stop(ctx, p.ContainerName, p.TimeoutSec); stopErr != nil {
+			return &Result{Status: "failed", Message: fmt.Sprintf("stop: %v", stopErr)}, nil
 		}
-		if err := client.Start(ctx, p.ContainerName); err != nil {
-			return &Result{Status: "failed", Message: fmt.Sprintf("start: %v", err)}, nil
+		if startErr := client.Start(ctx, p.ContainerName); startErr != nil {
+			return &Result{Status: "failed", Message: fmt.Sprintf("start: %v", startErr)}, nil
 		}
 		return &Result{Status: "success", Message: fmt.Sprintf("restarted %s", p.ContainerName)}, nil
 	}
