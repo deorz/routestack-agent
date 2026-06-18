@@ -5,3 +5,5 @@ routestack-agent
 vendor/
 .idea/
 *.iml
+AGENTS.md
+docs/
