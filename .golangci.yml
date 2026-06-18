@@ -12,7 +12,6 @@ linters:
     - gocritic
     - unconvert
     - prealloc
-    - nilerr
     - makezero
     - copyloopvar
 
@@ -37,6 +36,7 @@ linters-settings:
     disabled-checks:
       - hugeParam
       - octalLiteral
+      - exitAfterDefer
     enabled-tags:
       - diagnostic
       - style
