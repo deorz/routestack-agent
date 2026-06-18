@@ -242,7 +242,88 @@ func (c *Client) Inspect(ctx context.Context, containerID string) (*ContainerSta
 	return &state, nil
 }
 
+// KnownContainerNames is the set of container names the agent can adopt
+// even if they were not originally created by the agent. This covers
+// containers deployed by external apps such as AmneziaVPN.
+//
+// Names mirror the Amnezia-Web-Panel convention:
+//
+//	https://github.com/PRVTPRO/Amnezia-Web-Panel
+var KnownContainerNames = []string{
+	"amnezia-awg2",
+	"amnezia-awg",
+	"amnezia-awg-legacy",
+	"amnezia-xray",
+	"telemt",
+}
+
+// FindContainer looks up a container by exact name, then by known
+// adoptable names, then by the routestack label. It returns the first
+// match or an empty string if no container is found.
+func (c *Client) FindContainer(ctx context.Context, name string) (string, error) {
+	// 1. Exact name match.
+	if state, err := c.Inspect(ctx, name); err == nil && state != nil {
+		return state.ID, nil
+	}
+
+	// 2. Try known adoptable names.
+	for _, candidate := range KnownContainerNames {
+		if candidate == name {
+			continue // already tried above
+		}
+		if state, err := c.Inspect(ctx, candidate); err == nil && state != nil {
+			return state.ID, nil
+		}
+	}
+
+	// 3. List routestack-labeled containers and match by name prefix.
+	containers, err := c.List(ctx, nil)
+	if err != nil {
+		return "", fmt.Errorf("find container %s: %w", name, err)
+	}
+	for _, container := range containers {
+		for _, n := range container.Names {
+			// Docker names start with '/'.
+			clean := strings.TrimPrefix(n, "/")
+			if clean == name {
+				return container.ID, nil
+			}
+			for _, candidate := range KnownContainerNames {
+				if clean == candidate {
+					return container.ID, nil
+				}
+			}
+		}
+	}
+
+	return "", nil
+}
+
+// Adopt adds the managed-by=routestack label to an existing container
+// so the agent can track it going forward.
+func (c *Client) Adopt(ctx context.Context, containerID string) error {
+	q := fmt.Sprintf("/%s/containers/%s/update", c.apiVersion, containerID)
+	body := map[string]any{
+		"Labels": map[string]string{
+			"managed-by": "routestack",
+		},
+	}
+
+	resp, err := c.doJSON(ctx, http.MethodPost, q, body)
+	if err != nil {
+		return fmt.Errorf("docker adopt %s: %w", containerID, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		data, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("docker adopt %s: http %d: %s", containerID, resp.StatusCode, strings.TrimSpace(string(data)))
+	}
+	return nil
+}
+
 // List returns containers matching the given label filter.
+// If no labels are provided, it lists routestack-managed containers.
 func (c *Client) List(ctx context.Context, labels map[string]string) ([]ContainerInfo, error) {
 	q := fmt.Sprintf("/%s/containers/json?all=true", c.apiVersion)
 	for k, v := range labels {
