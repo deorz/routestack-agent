@@ -160,4 +160,3 @@ func (a *Agent) operationPollLoop(ctx context.Context) {
 	a.logger.Info("operation poller started (stub — not yet implemented)")
 	<-ctx.Done()
 }
-

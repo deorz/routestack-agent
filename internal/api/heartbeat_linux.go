@@ -180,7 +180,7 @@ func loadAvg1m() float64 {
 
 // charsToString converts a syscall-int8 array to a Go string,
 // stopping at the first null byte.
-func charsToString(ca [65]int8) string {
+func charsToString(ca []int8) string {
 	var b strings.Builder
 	for _, c := range ca {
 		if c == 0 {
