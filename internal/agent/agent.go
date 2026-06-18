@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"routestack-agent/internal/api"
+	"routestack-agent/internal/executor"
 )
 
 // APIClient is the interface the Agent uses to communicate with the
@@ -31,21 +32,23 @@ type StateStore interface {
 // Agent is the core agent runtime. It owns the main loop, heartbeat ticker,
 // and operation poller goroutines.
 type Agent struct {
-	config  *Config
-	state   StateStore
-	api     APIClient
-	logger  *slog.Logger
-	version string
+	config   *Config
+	state    StateStore
+	api      APIClient
+	executor *executor.Executor
+	logger   *slog.Logger
+	version  string
 }
 
 // NewAgent creates an Agent with its wired dependencies.
-func NewAgent(cfg *Config, st StateStore, apiClient APIClient, version string, logger *slog.Logger) *Agent {
+func NewAgent(cfg *Config, st StateStore, apiClient APIClient, exec *executor.Executor, version string, logger *slog.Logger) *Agent {
 	return &Agent{
-		config:  cfg,
-		state:   st,
-		api:     apiClient,
-		logger:  logger,
-		version: version,
+		config:   cfg,
+		state:    st,
+		api:      apiClient,
+		executor: exec,
+		logger:   logger,
+		version:  version,
 	}
 }
 
@@ -155,8 +158,78 @@ func (a *Agent) sendHeartbeat(ctx context.Context, caps []string) {
 	)
 }
 
-// operationPollLoop long-polls for pending operations (stub for Phase 2).
+// operationPollLoop long-polls the controller for pending operations,
+// dispatches them to the executor, and reports completion.
 func (a *Agent) operationPollLoop(ctx context.Context) {
-	a.logger.Info("operation poller started (stub — not yet implemented)")
-	<-ctx.Done()
+	a.logger.Info("operation poller started")
+
+	pollTimeout := time.Duration(a.config.Controller.OperationPollTimeoutSec) * time.Second
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		pollCtx, cancel := context.WithTimeout(ctx, pollTimeout)
+		resp, err := a.api.ClaimOperation(pollCtx, api.ClaimRequest{
+			NodeID: a.state.NodeID(),
+		})
+		cancel()
+
+		if err != nil {
+			a.logger.Warn("operation claim failed", slog.String("error", err.Error()))
+			// Back off briefly before retrying.
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(5 * time.Second):
+			}
+			continue
+		}
+
+		if resp.Operation == nil {
+			continue // no work available, poll again immediately
+		}
+
+		op := executor.Operation{
+			ID:   resp.Operation.ID,
+			Type: resp.Operation.Type,
+			Data: resp.Operation.Data,
+		}
+
+		a.logger.Info("claimed operation",
+			slog.String("op_id", op.ID),
+			slog.String("op_type", op.Type),
+		)
+
+		result, execErr := a.executor.Execute(ctx, op)
+
+		// Report completion back to controller.
+		status := "success"
+		errMsg := ""
+		if execErr != nil {
+			status = "failed"
+			errMsg = execErr.Error()
+		} else if result != nil {
+			status = result.Status
+			errMsg = result.Message
+		}
+
+		reportCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		reportErr := a.api.CompleteOperation(reportCtx, op.ID, api.CompleteRequest{
+			ID:     op.ID,
+			Status: status,
+			Result: errMsg,
+		})
+		cancel()
+
+		if reportErr != nil {
+			a.logger.Error("failed to report operation completion",
+				slog.String("op_id", op.ID),
+				slog.String("error", reportErr.Error()),
+			)
+		}
+	}
 }

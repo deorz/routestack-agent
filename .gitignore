@@ -1,4 +1,4 @@
-routestack-agent
+/routestack-agent
 *.exe
 *.test
 *.prof

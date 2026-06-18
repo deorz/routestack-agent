@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://routestack.dev/schemas/operations.json",
+  "title": "RouteStack Agent Operations",
+  "description": "Shared contract between Python control plane and Go node agent. Defines the payload schema for every operation type the agent can execute.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/install_component" },
+    { "$ref": "#/$defs/apply_service_revision" },
+    { "$ref": "#/$defs/start_service" },
+    { "$ref": "#/$defs/stop_service" },
+    { "$ref": "#/$defs/restart_service" },
+    { "$ref": "#/$defs/apply_firewall_revision" },
+    { "$ref": "#/$defs/create_tunnel" },
+    { "$ref": "#/$defs/remove_tunnel" },
+    { "$ref": "#/$defs/collect_status" },
+    { "$ref": "#/$defs/collect_logs" },
+    { "$ref": "#/$defs/run_health_check" },
+    { "$ref": "#/$defs/manage_certificate" }
+  ],
+  "$defs": {
+    "install_component": {
+      "title": "INSTALL_COMPONENT",
+      "properties": {
+        "component_name": { "type": "string" },
+        "version": { "type": "string" },
+        "download_url": { "type": "string", "format": "uri" },
+        "expected_sha256": { "type": "string" }
+      },
+      "required": ["component_name", "version", "download_url", "expected_sha256"]
+    },
+    "apply_service_revision": {
+      "title": "APPLY_SERVICE_REVISION",
+      "properties": {
+        "service_id": { "type": "string" },
+        "revision": { "type": "integer" },
+        "config_template": { "type": "object" }
+      },
+      "required": ["service_id", "revision"]
+    },
+    "start_service": {
+      "title": "START_SERVICE",
+      "properties": {
+        "container_name": { "type": "string", "description": "Docker container name (routestack-<service-id>)" }
+      },
+      "required": ["container_name"]
+    },
+    "stop_service": {
+      "title": "STOP_SERVICE",
+      "properties": {
+        "container_name": { "type": "string" },
+        "timeout_sec": { "type": "integer", "default": 10 }
+      },
+      "required": ["container_name"]
+    },
+    "restart_service": {
+      "title": "RESTART_SERVICE",
+      "properties": {
+        "container_name": { "type": "string" },
+        "timeout_sec": { "type": "integer", "default": 10 }
+      },
+      "required": ["container_name"]
+    },
+    "apply_firewall_revision": {
+      "title": "APPLY_FIREWALL_REVISION",
+      "properties": {
+        "revision": { "type": "integer" },
+        "ruleset": { "type": "string" }
+      },
+      "required": ["revision", "ruleset"]
+    },
+    "create_tunnel": {
+      "title": "CREATE_TUNNEL",
+      "properties": {
+        "tunnel_id": { "type": "string" },
+        "peer_config": { "type": "object" }
+      },
+      "required": ["tunnel_id"]
+    },
+    "remove_tunnel": {
+      "title": "REMOVE_TUNNEL",
+      "properties": {
+        "tunnel_id": { "type": "string" }
+      },
+      "required": ["tunnel_id"]
+    },
+    "collect_status": {
+      "title": "COLLECT_STATUS",
+      "properties": {
+        "service_id": { "type": "string" }
+      },
+      "required": ["service_id"]
+    },
+    "collect_logs": {
+      "title": "COLLECT_LOGS",
+      "properties": {
+        "container_name": { "type": "string" },
+        "tail": { "type": "integer", "default": 100 }
+      },
+      "required": ["container_name"]
+    },
+    "run_health_check": {
+      "title": "RUN_HEALTH_CHECK",
+      "properties": {
+        "service_id": { "type": "string" }
+      },
+      "required": ["service_id"]
+    },
+    "manage_certificate": {
+      "title": "MANAGE_CERTIFICATE",
+      "properties": {
+        "domain": { "type": "string" },
+        "action": { "type": "string", "enum": ["issue", "renew", "revoke"] }
+      },
+      "required": ["domain", "action"]
+    }
+  }
+}
