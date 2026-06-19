@@ -9,6 +9,7 @@ import (
 	"routestack-agent/internal/docker"
 	"routestack-agent/internal/installer"
 	"routestack-agent/internal/service"
+	"routestack-agent/internal/tunnel"
 )
 
 // extractContainerName parses and validates container_name from operation payload.
@@ -218,5 +219,41 @@ func NewCollectLogsHandler(mgr *service.Manager) Handler {
 			return &Result{Status: "failed", Message: err.Error()}, nil
 		}
 		return &Result{Status: "success", Message: logs}, nil
+	}
+}
+
+// NewCreateTunnelHandler returns a handler that creates a tunnel inside a
+// managed service container.
+func NewCreateTunnelHandler(mgr *tunnel.Manager) Handler {
+	return func(ctx context.Context, op Operation) (*Result, error) {
+		var req tunnel.Request
+		if err := json.Unmarshal(op.Data, &req); err != nil {
+			return nil, fmt.Errorf("invalid tunnel payload: %w", err)
+		}
+		if err := mgr.Create(ctx, req); err != nil {
+			return &Result{Status: "failed", Message: err.Error()}, nil
+		}
+		return &Result{
+			Status:  "success",
+			Message: fmt.Sprintf("created tunnel %s in %s", req.TunnelID, req.ServiceID),
+		}, nil
+	}
+}
+
+// NewRemoveTunnelHandler returns a handler that removes a tunnel from a
+// managed service container.
+func NewRemoveTunnelHandler(mgr *tunnel.Manager) Handler {
+	return func(ctx context.Context, op Operation) (*Result, error) {
+		var req tunnel.Request
+		if err := json.Unmarshal(op.Data, &req); err != nil {
+			return nil, fmt.Errorf("invalid tunnel payload: %w", err)
+		}
+		if err := mgr.Remove(ctx, req); err != nil {
+			return &Result{Status: "failed", Message: err.Error()}, nil
+		}
+		return &Result{
+			Status:  "success",
+			Message: fmt.Sprintf("removed tunnel %s from %s", req.TunnelID, req.ServiceID),
+		}, nil
 	}
 }
