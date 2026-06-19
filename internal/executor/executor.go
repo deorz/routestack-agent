@@ -42,6 +42,7 @@ type Operation struct {
 type Result struct {
 	Status  string `json:"status"` // "success", "degraded", "failed"
 	Message string `json:"message"`
+	Data    []byte `json:"data,omitempty"` // optional structured payload
 }
 
 // Handler is a function that executes a specific operation type.

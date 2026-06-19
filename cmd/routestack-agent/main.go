@@ -14,6 +14,7 @@ import (
 	"routestack-agent/internal/executor"
 	"routestack-agent/internal/filesystem"
 	"routestack-agent/internal/installer"
+	"routestack-agent/internal/service"
 	"routestack-agent/internal/state"
 )
 
@@ -103,7 +104,6 @@ func cmdRun(args []string) {
 		logger.Warn("Docker not available — container operations will fail",
 			slog.String("error", dockerErr.Error()))
 	}
-
 	// Register handlers for implemented operation types.
 	if dockerClient != nil {
 		exec.Register(executor.OpStartService, executor.NewDockerStartHandler(dockerClient))
@@ -112,15 +112,17 @@ func cmdRun(args []string) {
 
 		inst := installer.NewInstaller(dockerClient)
 		exec.Register(executor.OpInstallComponent, executor.NewInstallComponentHandler(inst))
+
+		mgr := service.NewManager(dockerClient)
+		exec.Register(executor.OpApplyServiceRevision, executor.NewApplyServiceRevisionHandler(mgr))
+		exec.Register(executor.OpCollectStatus, executor.NewCollectStatusHandler(mgr))
+		exec.Register(executor.OpCollectLogs, executor.NewCollectLogsHandler(mgr))
 	}
 
 	// Stubs for operation types scheduled in later phases.
-	exec.Register(executor.OpApplyServiceRevision, executor.NewStubHandler("Phase 5"))
 	exec.Register(executor.OpApplyFirewallRevision, executor.NewStubHandler("Phase 12"))
 	exec.Register(executor.OpCreateTunnel, executor.NewStubHandler("Phase 6"))
 	exec.Register(executor.OpRemoveTunnel, executor.NewStubHandler("Phase 6"))
-	exec.Register(executor.OpCollectStatus, executor.NewStubHandler("Phase 5"))
-	exec.Register(executor.OpCollectLogs, executor.NewStubHandler("Phase 5"))
 	exec.Register(executor.OpRunHealthCheck, executor.NewStubHandler("Phase 13"))
 	exec.Register(executor.OpManageCertificate, executor.NewStubHandler("Phase 14"))
 
