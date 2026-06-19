@@ -10,6 +10,7 @@ import (
 
 	"routestack-agent/internal/agent"
 	"routestack-agent/internal/api"
+	"routestack-agent/internal/certs"
 	"routestack-agent/internal/docker"
 	"routestack-agent/internal/executor"
 	"routestack-agent/internal/filesystem"
@@ -132,8 +133,8 @@ func cmdRun(args []string) {
 		exec.Register(executor.OpRunHealthCheck, executor.NewRunHealthCheckHandler(healthMgr))
 	}
 
-	// Stubs for operation types scheduled in later phases.
-	exec.Register(executor.OpManageCertificate, executor.NewStubHandler("Phase 14"))
+	certMgr := certs.NewManager()
+	exec.Register(executor.OpManageCertificate, executor.NewManageCertificateHandler(certMgr))
 
 	a := agent.NewAgent(cfg, stateStore, apiClient, exec, version, logger)
 

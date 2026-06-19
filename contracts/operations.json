@@ -316,9 +316,16 @@
         },
         "manage_certificate": {
             "title": "MANAGE_CERTIFICATE",
+            "description": "Issue, renew, or revoke a public TLS certificate using Certbot.",
             "properties": {
                 "domain": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Primary certificate domain and Certbot certificate name."
+                },
+                "domains": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Optional additional SAN domains for issuance."
                 },
                 "action": {
                     "type": "string",
@@ -327,11 +334,59 @@
                         "renew",
                         "revoke"
                     ]
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "standalone",
+                        "webroot"
+                    ],
+                    "description": "ACME challenge method for issuance. Defaults to standalone."
+                },
+                "email": {
+                    "type": "string",
+                    "description": "ACME account email. Required when action is issue."
+                },
+                "webroot_path": {
+                    "type": "string",
+                    "description": "Absolute webroot path for webroot issuance or renewal option updates."
+                },
+                "staging": {
+                    "type": "boolean",
+                    "description": "Use the ACME staging/test CA."
+                },
+                "force_renewal": {
+                    "type": "boolean",
+                    "description": "Pass --force-renewal to Certbot."
+                },
+                "revoke_reason": {
+                    "type": "string",
+                    "enum": [
+                        "keycompromise",
+                        "affiliationchanged",
+                        "superseded",
+                        "cessationofoperation"
+                    ],
+                    "description": "Optional ACME revocation reason."
                 }
             },
             "required": [
                 "domain",
                 "action"
+            ],
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "action": { "const": "issue" }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "email"
+                        ]
+                    }
+                }
             ]
         }
     }

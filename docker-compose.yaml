@@ -8,6 +8,7 @@ services:
       - ./configs:/etc/routestack/agent:ro
       - agent-data:/var/lib/routestack
       - agent-logs:/var/log/routestack
+      - /etc/letsencrypt:/etc/letsencrypt
       - /etc/systemd/system:/etc/systemd/system
       - /run/systemd:/run/systemd
       - /sys/fs/cgroup:/sys/fs/cgroup:ro

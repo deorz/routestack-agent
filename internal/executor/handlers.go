@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"routestack-agent/internal/certs"
 	"routestack-agent/internal/components"
 	"routestack-agent/internal/docker"
 	"routestack-agent/internal/firewall"
@@ -305,5 +306,26 @@ func NewRunHealthCheckHandler(mgr *health.Manager) Handler {
 			status = "degraded"
 		}
 		return &Result{Status: status, Data: data}, nil
+	}
+}
+
+// NewManageCertificateHandler returns a handler that issues, renews, or revokes
+// public TLS certificates through Certbot.
+func NewManageCertificateHandler(mgr *certs.Manager) Handler {
+	return func(ctx context.Context, op Operation) (*Result, error) {
+		var req certs.Request
+		if err := json.Unmarshal(op.Data, &req); err != nil {
+			return nil, fmt.Errorf("invalid certificate payload: %w", err)
+		}
+		report, err := mgr.Manage(ctx, req)
+		if err != nil {
+			return &Result{Status: "failed", Message: err.Error()}, nil
+		}
+		data, _ := json.Marshal(report)
+		return &Result{
+			Status:  "success",
+			Message: fmt.Sprintf("%s certificate %s", req.Action, report.Domain),
+			Data:    data,
+		}, nil
 	}
 }
