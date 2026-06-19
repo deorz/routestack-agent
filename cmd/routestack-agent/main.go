@@ -13,6 +13,7 @@ import (
 	"routestack-agent/internal/docker"
 	"routestack-agent/internal/executor"
 	"routestack-agent/internal/filesystem"
+	"routestack-agent/internal/installer"
 	"routestack-agent/internal/state"
 )
 
@@ -108,10 +109,12 @@ func cmdRun(args []string) {
 		exec.Register(executor.OpStartService, executor.NewDockerStartHandler(dockerClient))
 		exec.Register(executor.OpStopService, executor.NewDockerStopHandler(dockerClient))
 		exec.Register(executor.OpRestartService, executor.NewDockerRestartHandler(dockerClient))
+
+		inst := installer.NewInstaller(dockerClient)
+		exec.Register(executor.OpInstallComponent, executor.NewInstallComponentHandler(inst))
 	}
 
 	// Stubs for operation types scheduled in later phases.
-	exec.Register(executor.OpInstallComponent, executor.NewStubHandler("Phase 3"))
 	exec.Register(executor.OpApplyServiceRevision, executor.NewStubHandler("Phase 5"))
 	exec.Register(executor.OpApplyFirewallRevision, executor.NewStubHandler("Phase 12"))
 	exec.Register(executor.OpCreateTunnel, executor.NewStubHandler("Phase 6"))

@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"routestack-agent/internal/components"
 	"routestack-agent/internal/docker"
+	"routestack-agent/internal/installer"
 )
 
 // extractContainerName parses and validates container_name from operation payload.
@@ -130,5 +132,23 @@ func NewDockerRestartHandler(client *docker.Client) Handler {
 func NewStubHandler(phase string) Handler {
 	return func(ctx context.Context, op Operation) (*Result, error) {
 		return nil, &RedirectError{OpType: op.Type, Target: phase}
+	}
+}
+
+// NewInstallComponentHandler returns a handler that pulls and verifies
+// a Docker image for a managed component.
+func NewInstallComponentHandler(inst *installer.Installer) Handler {
+	return func(ctx context.Context, op Operation) (*Result, error) {
+		var c components.Component
+		if err := json.Unmarshal(op.Data, &c); err != nil {
+			return nil, fmt.Errorf("invalid component payload: %w", err)
+		}
+		if err := inst.Install(ctx, c); err != nil {
+			return &Result{Status: "failed", Message: err.Error()}, nil
+		}
+		return &Result{
+			Status:  "success",
+			Message: fmt.Sprintf("installed %s (%s)", c.Name, c.Version),
+		}, nil
 	}
 }

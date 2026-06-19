@@ -1,0 +1,19 @@
+# Component lock file.
+# Pins the Docker images the agent is allowed to install.
+# The control plane references these by component_name + version.
+components:
+  - name: amnezia-awg2
+    version: latest
+    image: amneziavpn/amneziawg-go:latest
+    expected_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  - name: xray
+    version: latest
+    image: amneziavpn/amnezia-xray:latest
+    expected_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  - name: telemt
+    version: latest
+    image: ghcr.io/telemt/telemt:latest
+    expected_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+# NOTE: Replace placeholder digests with real values from `docker inspect --format
+# '{{index .RepoDigests 0}}' <image>` after pinning to a concrete version.
