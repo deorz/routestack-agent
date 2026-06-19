@@ -14,7 +14,7 @@ The agent communicates with the RouteStack control plane via mTLS-protected HTTP
 
 ### Key design principles
 
-- **No shell execution**: All system operations via Go syscalls and D-Bus
+- **Validated system operations**: Host commands are built as argument vectors, never shell strings
 - **Atomic writes**: Config files written to temp file then renamed
 - **Context propagation**: Every operation respects `context.Context` cancellation
 - **Graceful degradation**: Missing optional binaries logged as warning, not fatal
@@ -26,6 +26,7 @@ The agent communicates with the RouteStack control plane via mTLS-protected HTTP
 | `/etc/routestack/agent/` | Agent config, TLS certs |
 | `/etc/routestack/services/` | Service configs (Xray, HAProxy, etc.) |
 | `/etc/routestack/nftables/` | nftables ruleset |
+| `/etc/letsencrypt/` | Certbot-managed public TLS certificates |
 | `/var/lib/routestack/backups/` | Config backups before changes |
 | `/var/lib/routestack/components/` | Downloaded component binaries |
 | `/var/lib/routestack/state.json` | Agent persistent state |
@@ -59,6 +60,7 @@ Create `/etc/systemd/system/routestack-agent.service`.
 docker run --privileged --pid=host --net=host \
   -v ./configs:/etc/routestack/agent:ro \
   -v routestack-data:/var/lib/routestack \
+  -v /etc/letsencrypt:/etc/letsencrypt \
   -v /etc/systemd/system:/etc/systemd/system \
   -v /run/systemd:/run/systemd \
   routestack-agent:dev run
@@ -72,6 +74,7 @@ Copy `configs/agent.example.yaml` to `/etc/routestack/agent/config.yaml` and adj
 
 - `controller.url` — control plane endpoint
 - `controller.ca_cert_path` — path to control plane CA certificate
+- `MANAGE_CERTIFICATE` uses Certbot for `issue`, `renew`, and `revoke`; issuance requires an ACME account email.
 
 ## Enrollment
 

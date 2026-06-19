@@ -11,6 +11,7 @@ const (
 	BackupDir      = "/var/lib/routestack/backups"
 	StateFile      = "/var/lib/routestack/state.json"
 	ComponentsDir  = "/var/lib/routestack/components"
+	CertsDir       = "/etc/letsencrypt"
 	LockFilePath   = "/etc/routestack/components.lock.yaml"
 	SystemdDir     = "/etc/systemd/system"
 	LogDir         = "/var/log/routestack"
@@ -32,6 +33,7 @@ var AllowedWritePrefixes = []string{
 	BackupDir,
 	StateFile,
 	ComponentsDir,
+	CertsDir,
 	SystemdDir, // only routestack-* prefixed units
 	LogDir,
 	RunDir,
