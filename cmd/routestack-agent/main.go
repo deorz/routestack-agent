@@ -110,31 +110,9 @@ func cmdRun(args []string) {
 	}
 	// Register handlers for implemented operation types.
 	if dockerClient != nil {
-		exec.Register(executor.OpStartService, executor.NewDockerStartHandler(dockerClient))
-		exec.Register(executor.OpStopService, executor.NewDockerStopHandler(dockerClient))
-		exec.Register(executor.OpRestartService, executor.NewDockerRestartHandler(dockerClient))
-
-		inst := installer.NewInstaller(dockerClient)
-		exec.Register(executor.OpInstallComponent, executor.NewInstallComponentHandler(inst))
-		mgr := service.NewManager(dockerClient)
-		exec.Register(executor.OpApplyServiceRevision, executor.NewApplyServiceRevisionHandler(mgr))
-		exec.Register(executor.OpCollectLogs, executor.NewCollectLogsHandler(mgr))
-
-		tunMgr := tunnel.NewManager(dockerClient)
-		exec.Register(executor.OpCreateTunnel, executor.NewCreateTunnelHandler(tunMgr))
-		exec.Register(executor.OpRemoveTunnel, executor.NewRemoveTunnelHandler(tunMgr))
+		registerDockerHandlers(exec, dockerClient)
 	}
-	// Remaining implemented operation types.
-	fwMgr := firewall.NewManager()
-	exec.Register(executor.OpApplyFirewallRevision, executor.NewApplyFirewallRevisionHandler(fwMgr))
-
-	if dockerClient != nil {
-		healthMgr := health.NewManager(dockerClient)
-		exec.Register(executor.OpRunHealthCheck, executor.NewRunHealthCheckHandler(healthMgr))
-	}
-
-	certMgr := certs.NewManager()
-	exec.Register(executor.OpManageCertificate, executor.NewManageCertificateHandler(certMgr))
+	registerCoreHandlers(exec)
 
 	a := agent.NewAgent(cfg, stateStore, apiClient, exec, version, logger)
 
@@ -142,6 +120,35 @@ func cmdRun(args []string) {
 		logger.Error("agent failed", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+}
+
+func registerDockerHandlers(exec *executor.Executor, dockerClient *docker.Client) {
+	exec.Register(executor.OpStartService, executor.NewDockerStartHandler(dockerClient))
+	exec.Register(executor.OpStopService, executor.NewDockerStopHandler(dockerClient))
+	exec.Register(executor.OpRestartService, executor.NewDockerRestartHandler(dockerClient))
+
+	inst := installer.NewInstaller(dockerClient)
+	exec.Register(executor.OpInstallComponent, executor.NewInstallComponentHandler(inst))
+
+	serviceMgr := service.NewManager(dockerClient)
+	exec.Register(executor.OpApplyServiceRevision, executor.NewApplyServiceRevisionHandler(serviceMgr))
+	exec.Register(executor.OpCollectStatus, executor.NewCollectStatusHandler(serviceMgr))
+	exec.Register(executor.OpCollectLogs, executor.NewCollectLogsHandler(serviceMgr))
+
+	tunMgr := tunnel.NewManager(dockerClient)
+	exec.Register(executor.OpCreateTunnel, executor.NewCreateTunnelHandler(tunMgr))
+	exec.Register(executor.OpRemoveTunnel, executor.NewRemoveTunnelHandler(tunMgr))
+
+	healthMgr := health.NewManager(dockerClient)
+	exec.Register(executor.OpRunHealthCheck, executor.NewRunHealthCheckHandler(healthMgr))
+}
+
+func registerCoreHandlers(exec *executor.Executor) {
+	fwMgr := firewall.NewManager()
+	exec.Register(executor.OpApplyFirewallRevision, executor.NewApplyFirewallRevisionHandler(fwMgr))
+
+	certMgr := certs.NewManager()
+	exec.Register(executor.OpManageCertificate, executor.NewManageCertificateHandler(certMgr))
 }
 
 // ── enroll ───────────────────────────────────────────────────────────────────
