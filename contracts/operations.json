@@ -294,9 +294,20 @@
         },
         "run_health_check": {
             "title": "RUN_HEALTH_CHECK",
+            "description": "Run a health check against a managed service container.",
             "properties": {
                 "service_id": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Managed service identifier."
+                },
+                "probe_ports": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Optional host ports to TCP probe."
+                },
+                "timeout_ms": {
+                    "type": "integer",
+                    "description": "TCP probe timeout in milliseconds."
                 }
             },
             "required": [
