@@ -14,6 +14,7 @@ import (
 	"routestack-agent/internal/executor"
 	"routestack-agent/internal/filesystem"
 	"routestack-agent/internal/firewall"
+	"routestack-agent/internal/health"
 	"routestack-agent/internal/installer"
 	"routestack-agent/internal/service"
 	"routestack-agent/internal/state"
@@ -122,13 +123,16 @@ func cmdRun(args []string) {
 		exec.Register(executor.OpCreateTunnel, executor.NewCreateTunnelHandler(tunMgr))
 		exec.Register(executor.OpRemoveTunnel, executor.NewRemoveTunnelHandler(tunMgr))
 	}
-
 	// Remaining implemented operation types.
 	fwMgr := firewall.NewManager()
 	exec.Register(executor.OpApplyFirewallRevision, executor.NewApplyFirewallRevisionHandler(fwMgr))
 
+	if dockerClient != nil {
+		healthMgr := health.NewManager(dockerClient)
+		exec.Register(executor.OpRunHealthCheck, executor.NewRunHealthCheckHandler(healthMgr))
+	}
+
 	// Stubs for operation types scheduled in later phases.
-	exec.Register(executor.OpRunHealthCheck, executor.NewStubHandler("Phase 13"))
 	exec.Register(executor.OpManageCertificate, executor.NewStubHandler("Phase 14"))
 
 	a := agent.NewAgent(cfg, stateStore, apiClient, exec, version, logger)

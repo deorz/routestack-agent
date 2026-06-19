@@ -8,6 +8,7 @@ import (
 	"routestack-agent/internal/components"
 	"routestack-agent/internal/docker"
 	"routestack-agent/internal/firewall"
+	"routestack-agent/internal/health"
 	"routestack-agent/internal/installer"
 	"routestack-agent/internal/service"
 	"routestack-agent/internal/tunnel"
@@ -274,5 +275,35 @@ func NewApplyFirewallRevisionHandler(mgr *firewall.Manager) Handler {
 			Status:  "success",
 			Message: fmt.Sprintf("applied firewall revision %d", rs.Revision),
 		}, nil
+	}
+}
+
+// NewRunHealthCheckHandler returns a handler that checks container health.
+func NewRunHealthCheckHandler(mgr *health.Manager) Handler {
+	return func(ctx context.Context, op Operation) (*Result, error) {
+		var p struct {
+			ServiceID  string   `json:"service_id"`
+			ProbePorts []string `json:"probe_ports,omitempty"`
+			TimeoutMs  int      `json:"timeout_ms,omitempty"`
+		}
+		if err := json.Unmarshal(op.Data, &p); err != nil {
+			return nil, fmt.Errorf("invalid health check payload: %w", err)
+		}
+		if p.ServiceID == "" {
+			return nil, fmt.Errorf("service_id is required")
+		}
+		report, err := mgr.Check(ctx, p.ServiceID, health.CheckOptions{
+			ProbePorts: p.ProbePorts,
+			TimeoutMs:  p.TimeoutMs,
+		})
+		if err != nil {
+			return &Result{Status: "failed", Message: err.Error()}, nil
+		}
+		data, _ := json.Marshal(report)
+		status := "success"
+		if !report.Healthy {
+			status = "degraded"
+		}
+		return &Result{Status: status, Data: data}, nil
 	}
 }
