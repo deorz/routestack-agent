@@ -11,6 +11,7 @@ import (
 
 	"routestack-agent/internal/api"
 	"routestack-agent/internal/executor"
+	"routestack-agent/internal/redact"
 )
 
 // APIClient is the interface the Agent uses to communicate with the
@@ -221,7 +222,7 @@ func (a *Agent) operationPollLoop(ctx context.Context) {
 		reportErr := a.api.CompleteOperation(reportCtx, op.ID, api.CompleteRequest{
 			ID:     op.ID,
 			Status: status,
-			Result: errMsg,
+			Result: redact.RedactSecrets(errMsg),
 		})
 		cancel()
 

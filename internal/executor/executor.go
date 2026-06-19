@@ -13,6 +13,8 @@ import (
 	"log/slog"
 	"sync"
 	"time"
+
+	"routestack-agent/internal/redact"
 )
 
 // Operation type constants shared with the Python control plane contract.
@@ -100,14 +102,14 @@ func (e *Executor) Execute(ctx context.Context, op Operation) (*Result, error) {
 	e.mu.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("executor: unknown operation type %q", op.Type)
+		return nil, fmt.Errorf("executor: unknown operation type %q", redact.RedactSecrets(op.Type))
 	}
 
 	// 2. Idempotency check.
 	e.mu.Lock()
 	if _, seen := e.seen[op.ID]; seen {
 		e.mu.Unlock()
-		e.logger.Warn("duplicate operation skipped", slog.String("op_id", op.ID), slog.String("op_type", op.Type))
+		e.logger.Warn("duplicate operation skipped", slog.String("op_id", redact.RedactSecrets(op.ID)), slog.String("op_type", redact.RedactSecrets(op.Type)))
 		return &Result{Status: "success", Message: "already processed"}, nil
 	}
 	// Mark seen before execution to prevent concurrent replays.
@@ -123,18 +125,22 @@ func (e *Executor) Execute(ctx context.Context, op Operation) (*Result, error) {
 	elapsed := time.Since(start)
 
 	if err != nil {
+		safeErr := &SafeOperationError{OpType: op.Type, OpID: op.ID, Err: err}
 		e.logger.Error("operation failed",
-			slog.String("op_id", op.ID),
-			slog.String("op_type", op.Type),
+			slog.String("op_id", redact.RedactSecrets(op.ID)),
+			slog.String("op_type", redact.RedactSecrets(op.Type)),
 			slog.Duration("elapsed", elapsed),
-			slog.String("error", err.Error()),
+			slog.String("error", safeErr.Error()),
 		)
-		return nil, fmt.Errorf("executor: %s %s: %w", op.Type, op.ID, err)
+		return nil, safeErr
 	}
 
+	if result != nil {
+		result.Message = redact.RedactSecrets(result.Message)
+	}
 	e.logger.Info("operation completed",
-		slog.String("op_id", op.ID),
-		slog.String("op_type", op.Type),
+		slog.String("op_id", redact.RedactSecrets(op.ID)),
+		slog.String("op_type", redact.RedactSecrets(op.Type)),
 		slog.String("status", result.Status),
 		slog.Duration("elapsed", elapsed),
 	)
@@ -156,6 +162,22 @@ func (e *Executor) evictLoop() {
 		}
 		e.mu.Unlock()
 	}
+}
+
+// SafeOperationError preserves the original handler error for errors.Is/As while
+// exposing only a redacted message through Error.
+type SafeOperationError struct {
+	OpType string
+	OpID   string
+	Err    error
+}
+
+func (e *SafeOperationError) Error() string {
+	return redact.RedactSecrets(fmt.Sprintf("executor: %s %s: %v", e.OpType, e.OpID, e.Err))
+}
+
+func (e *SafeOperationError) Unwrap() error {
+	return e.Err
 }
 
 // RedirectError is sentinel for "not yet implemented" operation types.
