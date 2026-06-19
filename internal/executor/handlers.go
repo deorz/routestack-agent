@@ -8,6 +8,7 @@ import (
 	"routestack-agent/internal/components"
 	"routestack-agent/internal/docker"
 	"routestack-agent/internal/installer"
+	"routestack-agent/internal/service"
 )
 
 // extractContainerName parses and validates container_name from operation payload.
@@ -150,5 +151,72 @@ func NewInstallComponentHandler(inst *installer.Installer) Handler {
 			Status:  "success",
 			Message: fmt.Sprintf("installed %s (%s)", c.Name, c.Version),
 		}, nil
+	}
+}
+
+// NewApplyServiceRevisionHandler returns a handler that reconciles a managed
+// service container with the requested revision spec.
+func NewApplyServiceRevisionHandler(mgr *service.Manager) Handler {
+	return func(ctx context.Context, op Operation) (*Result, error) {
+		var p struct {
+			ServiceID string       `json:"service_id"`
+			Revision  int64        `json:"revision"`
+			Spec      service.Spec `json:"spec"`
+		}
+		if err := json.Unmarshal(op.Data, &p); err != nil {
+			return nil, fmt.Errorf("invalid service revision payload: %w", err)
+		}
+		if p.ServiceID == "" {
+			return nil, fmt.Errorf("service_id is required")
+		}
+		if err := mgr.ApplyRevision(ctx, p.ServiceID, p.Revision, p.Spec); err != nil {
+			return &Result{Status: "failed", Message: err.Error()}, nil
+		}
+		return &Result{
+			Status:  "success",
+			Message: fmt.Sprintf("applied revision %d to %s", p.Revision, p.ServiceID),
+		}, nil
+	}
+}
+
+// NewCollectStatusHandler returns a handler that reports container status.
+func NewCollectStatusHandler(mgr *service.Manager) Handler {
+	return func(ctx context.Context, op Operation) (*Result, error) {
+		var p struct {
+			ServiceID string `json:"service_id"`
+		}
+		if err := json.Unmarshal(op.Data, &p); err != nil {
+			return nil, fmt.Errorf("invalid status payload: %w", err)
+		}
+		if p.ServiceID == "" {
+			return nil, fmt.Errorf("service_id is required")
+		}
+		status, err := mgr.CollectStatus(ctx, p.ServiceID)
+		if err != nil {
+			return &Result{Status: "failed", Message: err.Error()}, nil
+		}
+		data, _ := json.Marshal(status)
+		return &Result{Status: "success", Data: data}, nil
+	}
+}
+
+// NewCollectLogsHandler returns a handler that returns container logs.
+func NewCollectLogsHandler(mgr *service.Manager) Handler {
+	return func(ctx context.Context, op Operation) (*Result, error) {
+		var p struct {
+			ServiceID string `json:"service_id"`
+			Tail      int    `json:"tail"`
+		}
+		if err := json.Unmarshal(op.Data, &p); err != nil {
+			return nil, fmt.Errorf("invalid logs payload: %w", err)
+		}
+		if p.ServiceID == "" {
+			return nil, fmt.Errorf("service_id is required")
+		}
+		logs, err := mgr.CollectLogs(ctx, p.ServiceID, p.Tail)
+		if err != nil {
+			return &Result{Status: "failed", Message: err.Error()}, nil
+		}
+		return &Result{Status: "success", Message: logs}, nil
 	}
 }

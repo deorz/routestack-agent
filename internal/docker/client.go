@@ -103,7 +103,14 @@ type ContainerState struct {
 			Status string `json:"Status"`
 		} `json:"Health"`
 	} `json:"State"`
-	Name string `json:"Name"`
+	Name   string          `json:"Name"`
+	Config ContainerConfig `json:"Config"`
+}
+
+// ContainerConfig holds the container configuration returned by inspect.
+type ContainerConfig struct {
+	Image  string            `json:"Image"`
+	Labels map[string]string `json:"Labels"`
 }
 
 // ── Container lifecycle ──────────────────────────────────────────────────────

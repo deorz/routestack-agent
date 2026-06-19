@@ -32,12 +32,25 @@
     },
     "apply_service_revision": {
       "title": "APPLY_SERVICE_REVISION",
+      "description": "Create or update a managed Docker service container from a revision spec.",
       "properties": {
-        "service_id": { "type": "string" },
-        "revision": { "type": "integer" },
-        "config_template": { "type": "object" }
+        "service_id": { "type": "string", "description": "Logical service identifier." },
+        "revision": { "type": "integer", "description": "Monotonically increasing revision number." },
+        "spec": {
+          "type": "object",
+          "description": "Docker container spec: image, command, ports, volumes, env, restart policy.",
+          "properties": {
+            "image": { "type": "string" },
+            "command": { "type": "array", "items": { "type": "string" } },
+            "ports": { "type": "array", "items": { "type": "object" } },
+            "volumes": { "type": "array", "items": { "type": "object" } },
+            "env": { "type": "object" },
+            "restart": { "type": "string", "enum": ["no", "always", "unless-stopped", "on-failure"] }
+          },
+          "required": ["image"]
+        }
       },
-      "required": ["service_id", "revision"]
+      "required": ["service_id", "revision", "spec"]
     },
     "start_service": {
       "title": "START_SERVICE",
@@ -87,18 +100,20 @@
     },
     "collect_status": {
       "title": "COLLECT_STATUS",
+      "description": "Collect runtime status for a managed service.",
       "properties": {
-        "service_id": { "type": "string" }
+        "service_id": { "type": "string", "description": "Logical service identifier." }
       },
       "required": ["service_id"]
     },
     "collect_logs": {
       "title": "COLLECT_LOGS",
+      "description": "Retrieve the last N lines of logs for a managed service.",
       "properties": {
-        "container_name": { "type": "string" },
-        "tail": { "type": "integer", "default": 100 }
+        "service_id": { "type": "string", "description": "Logical service identifier." },
+        "tail": { "type": "integer", "default": 100, "minimum": 1 }
       },
-      "required": ["container_name"]
+      "required": ["service_id"]
     },
     "run_health_check": {
       "title": "RUN_HEALTH_CHECK",
