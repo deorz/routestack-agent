@@ -17,6 +17,7 @@ The agent communicates with the RouteStack control plane via mTLS-protected HTTP
 - **Validated system operations**: Host commands are built as argument vectors, never shell strings
 - **Atomic writes**: Config files written to temp file then renamed
 - **Context propagation**: Every operation respects `context.Context` cancellation
+- **Secret redaction**: Control-plane result messages remove keys, passwords, secrets, and UUIDs
 - **Graceful degradation**: Missing optional binaries logged as warning, not fatal
 
 ## Filesystem layout

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -95,6 +96,53 @@ func TestHandlerError(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected error from failing handler")
+	}
+}
+
+func TestHandlerErrorRedacted(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	exec := NewExecutor(logger)
+
+	exec.Register("FAIL_OP", func(ctx context.Context, op Operation) (*Result, error) {
+		return nil, errors.New("container failed with PrivateKey = abcdefghijklmnopqrstuvwxyz0123456789+/= password=swordfish")
+	})
+
+	_, err := exec.Execute(context.Background(), Operation{
+		ID:   "123e4567-e89b-12d3-a456-426614174000",
+		Type: "FAIL_OP",
+	})
+	if err == nil {
+		t.Fatal("expected error from failing handler")
+	}
+	got := err.Error()
+	if strings.Contains(got, "abcdefghijklmnopqrstuvwxyz") || strings.Contains(got, "swordfish") || strings.Contains(got, "123e4567") {
+		t.Fatalf("error was not redacted: %q", got)
+	}
+	if !strings.Contains(got, "[REDACTED]") {
+		t.Fatalf("redacted marker missing from error: %q", got)
+	}
+}
+
+func TestResultMessageRedacted(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	exec := NewExecutor(logger)
+
+	exec.Register("LOG_OP", func(ctx context.Context, op Operation) (*Result, error) {
+		return &Result{Status: "success", Message: `{"password":"swordfish","message":"ok"}`}, nil
+	})
+
+	result, err := exec.Execute(context.Background(), Operation{
+		ID:   "op-log",
+		Type: "LOG_OP",
+	})
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if strings.Contains(result.Message, "swordfish") {
+		t.Fatalf("result message was not redacted: %q", result.Message)
+	}
+	if want := `{"password":"[REDACTED]","message":"ok"}`; result.Message != want {
+		t.Fatalf("message = %q, want %q", result.Message, want)
 	}
 }
 
