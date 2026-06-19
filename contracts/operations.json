@@ -177,17 +177,30 @@
         },
         "apply_firewall_revision": {
             "title": "APPLY_FIREWALL_REVISION",
+            "description": "Apply a host firewall ruleset via iptables.",
             "properties": {
                 "revision": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Monotonically increasing revision number."
                 },
-                "ruleset": {
-                    "type": "string"
+                "rules": {
+                    "type": "array",
+                    "description": "List of iptables rule argument lists applied to the ROUTESTACK-FWD chain.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "args": {
+                                "type": "array",
+                                "items": { "type": "string" }
+                            }
+                        },
+                        "required": ["args"]
+                    }
                 }
             },
             "required": [
                 "revision",
-                "ruleset"
+                "rules"
             ]
         },
         "create_tunnel": {

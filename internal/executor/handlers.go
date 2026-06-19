@@ -7,6 +7,7 @@ import (
 
 	"routestack-agent/internal/components"
 	"routestack-agent/internal/docker"
+	"routestack-agent/internal/firewall"
 	"routestack-agent/internal/installer"
 	"routestack-agent/internal/service"
 	"routestack-agent/internal/tunnel"
@@ -254,6 +255,24 @@ func NewRemoveTunnelHandler(mgr *tunnel.Manager) Handler {
 		return &Result{
 			Status:  "success",
 			Message: fmt.Sprintf("removed tunnel %s from %s", req.TunnelID, req.ServiceID),
+		}, nil
+	}
+}
+
+// NewApplyFirewallRevisionHandler returns a handler that applies a firewall
+// ruleset to the host via iptables.
+func NewApplyFirewallRevisionHandler(mgr *firewall.Manager) Handler {
+	return func(ctx context.Context, op Operation) (*Result, error) {
+		var rs firewall.Ruleset
+		if err := json.Unmarshal(op.Data, &rs); err != nil {
+			return nil, fmt.Errorf("invalid firewall payload: %w", err)
+		}
+		if err := mgr.ApplyRevision(ctx, rs); err != nil {
+			return &Result{Status: "failed", Message: err.Error()}, nil
+		}
+		return &Result{
+			Status:  "success",
+			Message: fmt.Sprintf("applied firewall revision %d", rs.Revision),
 		}, nil
 	}
 }
