@@ -1,134 +1,314 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://routestack.dev/schemas/operations.json",
-  "title": "RouteStack Agent Operations",
-  "description": "Shared contract between Python control plane and Go node agent. Defines the payload schema for every operation type the agent can execute.",
-  "type": "object",
-  "oneOf": [
-    { "$ref": "#/$defs/install_component" },
-    { "$ref": "#/$defs/apply_service_revision" },
-    { "$ref": "#/$defs/start_service" },
-    { "$ref": "#/$defs/stop_service" },
-    { "$ref": "#/$defs/restart_service" },
-    { "$ref": "#/$defs/apply_firewall_revision" },
-    { "$ref": "#/$defs/create_tunnel" },
-    { "$ref": "#/$defs/remove_tunnel" },
-    { "$ref": "#/$defs/collect_status" },
-    { "$ref": "#/$defs/collect_logs" },
-    { "$ref": "#/$defs/run_health_check" },
-    { "$ref": "#/$defs/manage_certificate" }
-  ],
-  "$defs": {
-    "install_component": {
-      "title": "INSTALL_COMPONENT",
-      "description": "Pull and verify a Docker image for a managed component.",
-      "properties": {
-        "component_name": { "type": "string", "description": "Logical component name (e.g. amnezia-awg2, xray, telemt)." },
-        "version": { "type": "string", "description": "Component version or image tag." },
-        "image": { "type": "string", "description": "Docker image reference, including registry and tag (e.g. ghcr.io/telemt/telemt:v1.2.3)." },
-        "expected_digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$", "description": "Expected SHA-256 image digest." }
-      },
-      "required": ["component_name", "version", "image", "expected_digest"]
-    },
-    "apply_service_revision": {
-      "title": "APPLY_SERVICE_REVISION",
-      "description": "Create or update a managed Docker service container from a revision spec.",
-      "properties": {
-        "service_id": { "type": "string", "description": "Logical service identifier." },
-        "revision": { "type": "integer", "description": "Monotonically increasing revision number." },
-        "spec": {
-          "type": "object",
-          "description": "Docker container spec: image, command, ports, volumes, env, restart policy.",
-          "properties": {
-            "image": { "type": "string" },
-            "command": { "type": "array", "items": { "type": "string" } },
-            "ports": { "type": "array", "items": { "type": "object" } },
-            "volumes": { "type": "array", "items": { "type": "object" } },
-            "env": { "type": "object" },
-            "restart": { "type": "string", "enum": ["no", "always", "unless-stopped", "on-failure"] }
-          },
-          "required": ["image"]
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://routestack.dev/schemas/operations.json",
+    "title": "RouteStack Agent Operations",
+    "description": "Shared contract between Python control plane and Go node agent. Defines the payload schema for every operation type the agent can execute.",
+    "type": "object",
+    "oneOf": [
+        {
+            "$ref": "#/$defs/install_component"
+        },
+        {
+            "$ref": "#/$defs/apply_service_revision"
+        },
+        {
+            "$ref": "#/$defs/start_service"
+        },
+        {
+            "$ref": "#/$defs/stop_service"
+        },
+        {
+            "$ref": "#/$defs/restart_service"
+        },
+        {
+            "$ref": "#/$defs/apply_firewall_revision"
+        },
+        {
+            "$ref": "#/$defs/create_tunnel"
+        },
+        {
+            "$ref": "#/$defs/remove_tunnel"
+        },
+        {
+            "$ref": "#/$defs/collect_status"
+        },
+        {
+            "$ref": "#/$defs/collect_logs"
+        },
+        {
+            "$ref": "#/$defs/run_health_check"
+        },
+        {
+            "$ref": "#/$defs/manage_certificate"
         }
-      },
-      "required": ["service_id", "revision", "spec"]
-    },
-    "start_service": {
-      "title": "START_SERVICE",
-      "properties": {
-        "container_name": { "type": "string", "description": "Docker container name (routestack-<service-id>)" }
-      },
-      "required": ["container_name"]
-    },
-    "stop_service": {
-      "title": "STOP_SERVICE",
-      "properties": {
-        "container_name": { "type": "string" },
-        "timeout_sec": { "type": "integer", "default": 10 }
-      },
-      "required": ["container_name"]
-    },
-    "restart_service": {
-      "title": "RESTART_SERVICE",
-      "properties": {
-        "container_name": { "type": "string" },
-        "timeout_sec": { "type": "integer", "default": 10 }
-      },
-      "required": ["container_name"]
-    },
-    "apply_firewall_revision": {
-      "title": "APPLY_FIREWALL_REVISION",
-      "properties": {
-        "revision": { "type": "integer" },
-        "ruleset": { "type": "string" }
-      },
-      "required": ["revision", "ruleset"]
-    },
-    "create_tunnel": {
-      "title": "CREATE_TUNNEL",
-      "properties": {
-        "tunnel_id": { "type": "string" },
-        "peer_config": { "type": "object" }
-      },
-      "required": ["tunnel_id"]
-    },
-    "remove_tunnel": {
-      "title": "REMOVE_TUNNEL",
-      "properties": {
-        "tunnel_id": { "type": "string" }
-      },
-      "required": ["tunnel_id"]
-    },
-    "collect_status": {
-      "title": "COLLECT_STATUS",
-      "description": "Collect runtime status for a managed service.",
-      "properties": {
-        "service_id": { "type": "string", "description": "Logical service identifier." }
-      },
-      "required": ["service_id"]
-    },
-    "collect_logs": {
-      "title": "COLLECT_LOGS",
-      "description": "Retrieve the last N lines of logs for a managed service.",
-      "properties": {
-        "service_id": { "type": "string", "description": "Logical service identifier." },
-        "tail": { "type": "integer", "default": 100, "minimum": 1 }
-      },
-      "required": ["service_id"]
-    },
-    "run_health_check": {
-      "title": "RUN_HEALTH_CHECK",
-      "properties": {
-        "service_id": { "type": "string" }
-      },
-      "required": ["service_id"]
-    },
-    "manage_certificate": {
-      "title": "MANAGE_CERTIFICATE",
-      "properties": {
-        "domain": { "type": "string" },
-        "action": { "type": "string", "enum": ["issue", "renew", "revoke"] }
-      },
-      "required": ["domain", "action"]
+    ],
+    "$defs": {
+        "install_component": {
+            "title": "INSTALL_COMPONENT",
+            "description": "Pull and verify a Docker image for a managed component.",
+            "properties": {
+                "component_name": {
+                    "type": "string",
+                    "description": "Logical component name (e.g. amnezia-awg2, xray, telemt)."
+                },
+                "version": {
+                    "type": "string",
+                    "description": "Component version or image tag."
+                },
+                "image": {
+                    "type": "string",
+                    "description": "Docker image reference, including registry and tag (e.g. ghcr.io/telemt/telemt:v1.2.3)."
+                },
+                "expected_digest": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$",
+                    "description": "Expected SHA-256 image digest."
+                }
+            },
+            "required": [
+                "component_name",
+                "version",
+                "image",
+                "expected_digest"
+            ]
+        },
+        "apply_service_revision": {
+            "title": "APPLY_SERVICE_REVISION",
+            "description": "Create or update a managed Docker service container from a revision spec.",
+            "properties": {
+                "service_id": {
+                    "type": "string",
+                    "description": "Logical service identifier."
+                },
+                "revision": {
+                    "type": "integer",
+                    "description": "Monotonically increasing revision number."
+                },
+                "spec": {
+                    "type": "object",
+                    "description": "Docker container spec: image, command, ports, volumes, env, restart policy.",
+                    "properties": {
+                        "image": {
+                            "type": "string"
+                        },
+                        "command": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "ports": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        },
+                        "volumes": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        },
+                        "env": {
+                            "type": "object"
+                        },
+                        "restart": {
+                            "type": "string",
+                            "enum": [
+                                "no",
+                                "always",
+                                "unless-stopped",
+                                "on-failure"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "image"
+                    ]
+                }
+            },
+            "required": [
+                "service_id",
+                "revision",
+                "spec"
+            ]
+        },
+        "start_service": {
+            "title": "START_SERVICE",
+            "properties": {
+                "container_name": {
+                    "type": "string",
+                    "description": "Docker container name (routestack-<service-id>)"
+                }
+            },
+            "required": [
+                "container_name"
+            ]
+        },
+        "stop_service": {
+            "title": "STOP_SERVICE",
+            "properties": {
+                "container_name": {
+                    "type": "string"
+                },
+                "timeout_sec": {
+                    "type": "integer",
+                    "default": 10
+                }
+            },
+            "required": [
+                "container_name"
+            ]
+        },
+        "restart_service": {
+            "title": "RESTART_SERVICE",
+            "properties": {
+                "container_name": {
+                    "type": "string"
+                },
+                "timeout_sec": {
+                    "type": "integer",
+                    "default": 10
+                }
+            },
+            "required": [
+                "container_name"
+            ]
+        },
+        "apply_firewall_revision": {
+            "title": "APPLY_FIREWALL_REVISION",
+            "properties": {
+                "revision": {
+                    "type": "integer"
+                },
+                "ruleset": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "revision",
+                "ruleset"
+            ]
+        },
+        "create_tunnel": {
+            "title": "CREATE_TUNNEL",
+            "description": "Create a client tunnel in a managed VPN service container.",
+            "properties": {
+                "service_id": {
+                    "type": "string",
+                    "description": "Managed service identifier hosting the tunnel."
+                },
+                "tunnel_id": {
+                    "type": "string",
+                    "description": "Unique tunnel / peer identifier."
+                },
+                "provider": {
+                    "type": "string",
+                    "enum": [
+                        "amneziawg",
+                        "xray"
+                    ],
+                    "description": "VPN provider type: amneziawg or xray."
+                },
+                "peer_config": {
+                    "type": "object",
+                    "description": "Provider-specific peer configuration."
+                }
+            },
+            "required": [
+                "service_id",
+                "tunnel_id",
+                "provider"
+            ]
+        },
+        "remove_tunnel": {
+            "title": "REMOVE_TUNNEL",
+            "description": "Remove a client tunnel from a managed VPN service container.",
+            "properties": {
+                "service_id": {
+                    "type": "string",
+                    "description": "Managed service identifier hosting the tunnel."
+                },
+                "tunnel_id": {
+                    "type": "string",
+                    "description": "Unique tunnel / peer identifier."
+                },
+                "provider": {
+                    "type": "string",
+                    "enum": [
+                        "amneziawg",
+                        "xray"
+                    ],
+                    "description": "VPN provider type: amneziawg or xray."
+                }
+            },
+            "required": [
+                "service_id",
+                "tunnel_id",
+                "provider"
+            ]
+        },
+        "collect_status": {
+            "title": "COLLECT_STATUS",
+            "description": "Collect runtime status for a managed service.",
+            "properties": {
+                "service_id": {
+                    "type": "string",
+                    "description": "Logical service identifier."
+                }
+            },
+            "required": [
+                "service_id"
+            ]
+        },
+        "collect_logs": {
+            "title": "COLLECT_LOGS",
+            "description": "Retrieve the last N lines of logs for a managed service.",
+            "properties": {
+                "service_id": {
+                    "type": "string",
+                    "description": "Logical service identifier."
+                },
+                "tail": {
+                    "type": "integer",
+                    "default": 100,
+                    "minimum": 1
+                }
+            },
+            "required": [
+                "service_id"
+            ]
+        },
+        "run_health_check": {
+            "title": "RUN_HEALTH_CHECK",
+            "properties": {
+                "service_id": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "service_id"
+            ]
+        },
+        "manage_certificate": {
+            "title": "MANAGE_CERTIFICATE",
+            "properties": {
+                "domain": {
+                    "type": "string"
+                },
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "issue",
+                        "renew",
+                        "revoke"
+                    ]
+                }
+            },
+            "required": [
+                "domain",
+                "action"
+            ]
+        }
     }
-  }
 }

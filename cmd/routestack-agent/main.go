@@ -16,6 +16,7 @@ import (
 	"routestack-agent/internal/installer"
 	"routestack-agent/internal/service"
 	"routestack-agent/internal/state"
+	"routestack-agent/internal/tunnel"
 )
 
 // Populated at build time via -ldflags.
@@ -112,17 +113,18 @@ func cmdRun(args []string) {
 
 		inst := installer.NewInstaller(dockerClient)
 		exec.Register(executor.OpInstallComponent, executor.NewInstallComponentHandler(inst))
-
 		mgr := service.NewManager(dockerClient)
 		exec.Register(executor.OpApplyServiceRevision, executor.NewApplyServiceRevisionHandler(mgr))
 		exec.Register(executor.OpCollectStatus, executor.NewCollectStatusHandler(mgr))
 		exec.Register(executor.OpCollectLogs, executor.NewCollectLogsHandler(mgr))
+
+		tunMgr := tunnel.NewManager(dockerClient)
+		exec.Register(executor.OpCreateTunnel, executor.NewCreateTunnelHandler(tunMgr))
+		exec.Register(executor.OpRemoveTunnel, executor.NewRemoveTunnelHandler(tunMgr))
 	}
 
 	// Stubs for operation types scheduled in later phases.
 	exec.Register(executor.OpApplyFirewallRevision, executor.NewStubHandler("Phase 12"))
-	exec.Register(executor.OpCreateTunnel, executor.NewStubHandler("Phase 6"))
-	exec.Register(executor.OpRemoveTunnel, executor.NewStubHandler("Phase 6"))
 	exec.Register(executor.OpRunHealthCheck, executor.NewStubHandler("Phase 13"))
 	exec.Register(executor.OpManageCertificate, executor.NewStubHandler("Phase 14"))
 

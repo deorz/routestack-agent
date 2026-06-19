@@ -175,6 +175,68 @@ func (c *Client) InspectImage(ctx context.Context, image string) (*ImageInfo, er
 	return &info, nil
 }
 
+// ExecResult holds the output of a container exec command.
+type ExecResult struct {
+	ExitCode int
+	Stdout   string
+	Stderr   string
+}
+
+// Exec runs a command inside a running container and returns its output.
+func (c *Client) Exec(ctx context.Context, containerID string, cmd []string) (*ExecResult, error) {
+	createBody := map[string]any{
+		"AttachStdout": true,
+		"AttachStderr": true,
+		"Cmd":          cmd,
+	}
+	q := fmt.Sprintf("/%s/containers/%s/exec", c.apiVersion, containerID)
+	resp, err := c.doJSON(ctx, http.MethodPost, q, createBody)
+	if err != nil {
+		return nil, fmt.Errorf("docker exec create %s: %w", containerID, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("docker exec create %s: http %d: %s", containerID, resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	var execResp struct {
+		ID string `json:"Id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&execResp); err != nil {
+		return nil, fmt.Errorf("docker exec create %s: decode: %w", containerID, err)
+	}
+
+	startBody := map[string]any{"Detach": false, "Tty": false}
+	startQ := fmt.Sprintf("/%s/exec/%s/start", c.apiVersion, execResp.ID)
+	startResp, err := c.doJSON(ctx, http.MethodPost, startQ, startBody)
+	if err != nil {
+		return nil, fmt.Errorf("docker exec start %s: %w", containerID, err)
+	}
+	defer startResp.Body.Close()
+
+	data, err := io.ReadAll(startResp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("docker exec read %s: %w", containerID, err)
+	}
+
+	// Inspect exec to get exit code.
+	inspectQ := fmt.Sprintf("/%s/exec/%s/json", c.apiVersion, execResp.ID)
+	inspectResp, err := c.do(ctx, http.MethodGet, inspectQ, nil)
+	if err != nil {
+		return nil, fmt.Errorf("docker exec inspect %s: %w", containerID, err)
+	}
+	defer inspectResp.Body.Close()
+
+	var inspect struct {
+		ExitCode int `json:"ExitCode"`
+	}
+	_ = json.NewDecoder(inspectResp.Body).Decode(&inspect)
+
+	return &ExecResult{ExitCode: inspect.ExitCode, Stdout: string(data)}, nil
+}
+
 // Create creates a container from the given spec. Returns the container ID.
 func (c *Client) Create(ctx context.Context, spec ContainerSpec) (string, error) {
 	body := c.buildCreateRequest(spec)
